@@ -4,8 +4,29 @@ import numpy as np
 import tkinter as tk
 import time
 from threading import Thread
+from datetime import datetime, timedelta
 
+TIEMPO_ENTRE_DETECCIONES = 60
+ultima_deteccion = None
+persona_detectada = ""
+archivo_creado = False
+estado_personas = {}
 #etiqueta_estado = None 
+
+def mostrar_informacion(persona, estado):
+    if persona is not None:
+        evento = "Entrada" if estado else "Salida"
+        fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        informacion = f"Persona: {persona}\nFecha y hora: {fecha_hora}\nEstado: {evento}"
+        print(informacion)  # Puedes reemplazar esto con la lógica para mostrar la información en una ventana emergente
+
+
+def guardar_en_archivo(persona, estado):
+    if persona is not None:
+        evento = "Entrada" if estado else "Salida"
+        fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        with open("detecciones.txt", "a") as file:
+            file.write(f"Persona detectada: {persona}, Fecha y hora: {fecha_hora},{evento}\n")
 
 def center_window(window):
     window.update_idletasks()
@@ -60,6 +81,51 @@ def abrir_modo_entrenamiento():
     solicitar_nombre_apellido()
 
 def case1():
+    """
+    print("Iniciando detección de personas...")
+    dataPath = 'Data'
+    imagePaths = os.listdir(dataPath)
+    face_recognizer = cv2.face.LBPHFaceRecognizer_create()
+
+    face_recognizer.read('models/modeloLBPHFace.xml')
+    
+    cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
+
+    if not cap.isOpened():
+        print("Error: No se puede acceder a la cámara.")
+        return
+
+    faceClassif = cv2.CascadeClassifier('models/haarcascade_frontalface_default.xml')
+    persona = None 
+    while True:
+        ret,frame = cap.read()
+        if ret == False:
+            print("Error: No se pudo capturar el fotograma.")
+            break
+        frame = cv2.flip(frame,1)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        auxFrame = gray.copy()
+
+        faces = faceClassif.detectMultiScale(gray,1.3,5)
+        for (x,y,w,h) in faces:
+            rostro = auxFrame[y:y+h,x:x+w]
+            rostro = cv2.resize(rostro,(150,150),interpolation= cv2.INTER_CUBIC)
+            result = face_recognizer.predict(rostro)
+
+            if result[1] < 70:
+                persona = imagePaths[result[0]]
+                guardar_en_archivo(persona)
+
+            cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
+            cv2.putText(frame,'{}'.format(persona),(x,y-5),1,1.3,(255,255,0),1,cv2.LINE_AA)
+
+        cv2.imshow('frame',frame)
+
+        k = cv2.waitKey(1)
+        if k == 27:
+            break
+    """
+    global persona_detectada, archivo_creado, ultima_deteccion, estado_personas
     dataPath = 'Data'
     imagePaths = os.listdir(dataPath)
     face_recognizer = cv2.face.LBPHFaceRecognizer_create()
@@ -78,6 +144,7 @@ def case1():
         auxFrame = gray.copy()
 
         faces = faceClassif.detectMultiScale(gray,1.3,5)
+        persona = None 
         for (x,y,w,h) in faces:
             cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
             rostro = auxFrame[y:y+h,x:x+w]
@@ -87,13 +154,29 @@ def case1():
             cv2.putText(frame,'{}'.format(result),(x,y-5),1,1.3,(255,255,0),1,cv2.LINE_AA)
             
             if result[1] < 70:
-                cv2.putText(frame,'{}'.format(imagePaths[result[0]]),(x,y-25),2,1.1,(0,255,0),1,cv2.LINE_AA)
-                cv2.rectangle(frame, (x,y),(x+w,y+h),(0,255,0),2)
+                index = result[0]  # Obtener el índice de la predicción
+                if 0 <= index < len(imagePaths):
+                    persona = imagePaths[index]
+                    cv2.putText(frame,'{}'.format(imagePaths[result[0]]),(x,y-25),2,1.1,(0,255,0),1,cv2.LINE_AA)
+                    cv2.rectangle(frame, (x,y),(x+w,y+h),(0,255,0),2)
+                    if ultima_deteccion is None or datetime.now() - ultima_deteccion >= timedelta(seconds=TIEMPO_ENTRE_DETECCIONES):
+                        if persona in estado_personas:
+                            estado = not estado_personas[persona]  # Cambiar el estado de entrada a salida y viceversa
+                        else:
+                            estado = True
+                        print(f"Persona detectada: {persona}")
+                        guardar_en_archivo(persona, estado)
+                        ultima_deteccion = datetime.now()
+                        estado_personas[persona] = estado
+                        mostrar_informacion(persona, estado)
+                else:
+                    print("Error: Índice fuera de rango en imagePaths.")
             else:
+                persona = None
                 cv2.putText(frame,'Desconocido',(x,y-20),2,0.8,(0,0,255),1,cv2.LINE_AA)
                 cv2.rectangle(frame, (x,y),(x+w,y+h),(0,0,255),2)
-
         cv2.imshow('frame',frame)
+
         k = cv2.waitKey(1)
         if k == 27:
             break
@@ -116,8 +199,8 @@ def case2():
     
     face_cascade = cv2.CascadeClassifier("models/haarcascade_frontalface_defaultC.xml")
 
-    cap = cv2.VideoCapture('Video.mp4')
-
+    """cap = cv2.VideoCapture('Video.mp4')"""
+    cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
     count = 0
 
     while True:
